@@ -1,0 +1,19 @@
+<div class="panel panel-default">
+  <div class="panel-heading clearfix">
+    <h4 class="panel-title pull-left" style="padding-top: 7px;">
+      Contacts
+    </h4>
+
+    <a class="btn btn-success pull-right" href="#">
+      New Contact
+    </a>
+  </div>
+
+  <div class="panel-body">
+    <cms-contact-item
+      *ngFor="let contact of contacts"
+      [contact]="contact"
+      (selected)="onSelect($event)">
+    </cms-contact-item>
+  </div>
+</div>

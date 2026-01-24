@@ -1,9 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { HeaderComponent } from './header';
+import { ContactsComponent } from './contacts/contacts';
 
 @Component({
   selector: 'cms-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [RouterOutlet, HeaderComponent, ContactsComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
