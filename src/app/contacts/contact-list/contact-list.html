@@ -4,16 +4,14 @@
       Contacts
     </h4>
 
-    <a class="btn btn-success pull-right" href="#">
-      New Contact
-    </a>
+    <a class="btn btn-success pull-right" [routerLink]="['new']">New Contact</a>
+
   </div>
 
   <div class="panel-body">
     <cms-contact-item
       *ngFor="let contact of contacts"
-      [contact]="contact"
-      (selected)="onSelect($event)">
+      [contact]="contact">
     </cms-contact-item>
   </div>
 </div>

@@ -1,20 +1,20 @@
 <a
-    class="list-group-item clearfix"
-    href="#"
-    (click)="onSelected()"
+  class="list-group-item clearfix"
+  [routerLink]="[contact.id]"
+  routerLinkActive="active"
 >
-    <div class="pull-left">
+  <div class="pull-left">
     <h4 class="list-group-item-heading">
-        {{ contact.name }}
+      {{ contact.name }}
     </h4>
-    </div>
+  </div>
 
-    <span class="pull-right">
+  <span class="pull-right">
     <img
-        [src]="contact.imageUrl"
-        alt="{{ contact.name }}"
-        class="img-responsive"
-        style="max-height: 50px;"
+      [src]="contact.imageUrl"
+      alt="{{ contact.name }}"
+      class="img-responsive"
+      style="max-height: 50px;"
     />
-    </span>
+  </span>
 </a>

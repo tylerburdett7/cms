@@ -1,3 +1,7 @@
-<div href="#" class="list-group-item clearfix" (click)="onSelected()">
+<a
+  class="list-group-item clearfix"
+  [routerLink]="[document.id]"
+  routerLinkActive="active"
+>
   {{ document.name }}
-</div>
+</a>

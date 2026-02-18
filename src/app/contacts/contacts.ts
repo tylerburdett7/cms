@@ -1,19 +1,12 @@
 import { Component } from '@angular/core';
-import { Contact } from './contact.model';
 import { ContactList } from './contact-list/contact-list';
-import { ContactDetail } from './contact-detail/contact-detail';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'cms-contacts',
   standalone: true,
-  imports: [ContactList, ContactDetail],
+  imports: [ContactList, RouterOutlet],
   templateUrl: './contacts.html',
   styleUrl: './contacts.css',
 })
-export class ContactsComponent {
-  selectedContact: Contact | null = null;
-
-  onContactSelected(contact: Contact) {
-    this.selectedContact = contact;
-  }
-}
+export class ContactsComponent {}

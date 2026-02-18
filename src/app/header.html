@@ -5,9 +5,17 @@
     </div>
 
     <ul class="nav navbar-nav">
-      <li><a routerLink="/documents">Documents</a></li>
-      <li><a routerLink="/messages">Messages</a></li>
-      <li><a routerLink="/contacts">Contacts</a></li>
+     <li routerLinkActive="active">
+        <a [routerLink]="['/documents']">Documents</a>
+      </li>
+
+      <li routerLinkActive="active">
+        <a [routerLink]="['/messages']">Messages</a>
+      </li>
+
+      <li routerLinkActive="active">
+        <a [routerLink]="['/contacts']">Contacts</a>
+      </li>
     </ul>
 
     <ul class="nav navbar-nav navbar-right">
