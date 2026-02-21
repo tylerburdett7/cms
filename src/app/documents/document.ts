@@ -1,4 +1,5 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
 import { Document } from './document.model';
 import { MOCKDOCUMENTS } from './MOCKDOCUMENTS';
 
@@ -7,12 +8,24 @@ import { MOCKDOCUMENTS } from './MOCKDOCUMENTS';
 })
 export class DocumentService {
   documents: Document[] = [];
+  maxDocumentId = 0;
 
-  documentSelectedEvent = new EventEmitter<Document>();
-  documentChangedEvent = new EventEmitter<Document[]>();
+  documentListChangedEvent = new Subject<Document[]>();
 
   constructor() {
     this.documents = MOCKDOCUMENTS;
+    this.maxDocumentId = this.getMaxId();
+  }
+
+  getMaxId(): number {
+    let maxId = 0;
+    for (const document of this.documents) {
+      const currentId = parseInt(document.id, 10);
+      if (currentId > maxId) {
+        maxId = currentId;
+      }
+    }
+    return maxId;
   }
 
   getDocuments(): Document[] {
@@ -28,6 +41,31 @@ export class DocumentService {
     return null;
   }
 
+  addDocument(newDocument: Document): void {
+    if (!newDocument) {
+      return;
+    }
+    this.maxDocumentId++;
+    newDocument.id = String(this.maxDocumentId);
+    this.documents.push(newDocument);
+    const documentsListClone = this.documents.slice();
+    this.documentListChangedEvent.next(documentsListClone);
+  }
+
+  updateDocument(originalDocument: Document, newDocument: Document): void {
+    if (!originalDocument || !newDocument) {
+      return;
+    }
+    const pos = this.documents.indexOf(originalDocument);
+    if (pos < 0) {
+      return;
+    }
+    newDocument.id = originalDocument.id;
+    this.documents[pos] = newDocument;
+    const documentsListClone = this.documents.slice();
+    this.documentListChangedEvent.next(documentsListClone);
+  }
+
   deleteDocument(document: Document): void {
     if (!document) {
       return;
@@ -37,6 +75,7 @@ export class DocumentService {
       return;
     }
     this.documents.splice(pos, 1);
-    this.documentChangedEvent.emit(this.documents.slice());
+    const documentsListClone = this.documents.slice();
+    this.documentListChangedEvent.next(documentsListClone);
   }
 }
