@@ -1,67 +1,50 @@
-// Get dependencies
-var express = require('express');
-var path = require('path');
-var http = require('http');
-var bodyParser = require('body-parser');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const express = require('express');
+const path = require('path');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
+const cors = require('cors');
+const mongoose = require('mongoose');
 
-// import the routing file to handle the default (index) route
-var index = require('./server/routes/app');
+// Import routing files
+const index = require('./server/routes/app');
+const messageRoutes = require('./server/routes/messages');
+const contactRoutes = require('./server/routes/contacts');
+const documentRoutes = require('./server/routes/documents');
 
-var documentRoutes = require('./server/routes/documents');
-var messageRoutes = require('./server/routes/messages');
-var contactRoutes = require('./server/routes/contacts');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-var app = express(); // create an instance of express
-
-// Tell express to use the following parsers for POST data
+// Middleware
+app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({
-  extended: false
-}));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(morgan('dev'));
 
-app.use(logger('dev')); // Tell express to use the Morgan logger
+// API routes
+app.use('/', index);
+app.use('/messages', messageRoutes);
+app.use('/contacts', contactRoutes);
+app.use('/documents', documentRoutes);
 
-// Add support for CORS
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept'
-  );
-  res.setHeader(
-    'Access-Control-Allow-Methods',
-    'GET, POST, PATCH, PUT, DELETE, OPTIONS'
-  );
-  next();
-});
-
-// Tell express to use the specified director as the
-// root directory for your web site
+// Serve static files from Angular build
 app.use(express.static(path.join(__dirname, 'dist/cms/browser')));
 
-// Tell express to map the default route ('/') to the index route
-app.use('/', index);
-
-app.use('/api/documents', documentRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/contacts', contactRoutes);
-
-// Tell express to map all other non-defined routes back to the index page
-app.get('/{*path}', (req, res) => {
+// Catch-all: serve index.html for Angular routes (Express 5 requires named wildcard)
+app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/cms/browser/index.html'));
 });
 
-// Define the port address and tell express to use this port
-const port = process.env.PORT || '3000';
-app.set('port', port);
-
-// Create HTTP server.
-const server = http.createServer(app);
-
-// Tell the server to start listening on the provided port
-server.listen(port, function() {
-  console.log('API running on localhost: ' + port)
-});
+// Establish connection to the mongo database
+mongoose
+  .connect('mongodb://localhost:27017/cms')
+  .then(() => {
+    console.log('Connected to database!');
+    app.listen(PORT, () => {
+      console.log('API running on localhost:' + PORT);
+    });
+  })
+  .catch((err) => {
+    console.log('Connection failed: ' + err);
+  });

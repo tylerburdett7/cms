@@ -12,7 +12,7 @@ export class DocumentService {
 
   documentListChangedEvent = new Subject<Document[]>();
 
-  private firebaseUrl = 'https://wdd430cms-6cb35-default-rtdb.firebaseio.com/documents.json';
+  private documentsUrl = 'http://localhost:3000/documents';
 
   constructor(private http: HttpClient) {}
 
@@ -27,30 +27,26 @@ export class DocumentService {
     return maxId;
   }
 
-  getDocuments(): void {
-    this.http.get<Document[]>(this.firebaseUrl).subscribe({
-      next: (documents: Document[]) => {
-        this.documents = documents ? documents : [];
-        this.maxDocumentId = this.getMaxId();
-        this.documents.sort((a, b) =>
-          a.name < b.name ? -1 : a.name > b.name ? 1 : 0
-        );
-        this.documentListChangedEvent.next(this.documents.slice());
-      },
-      error: (error: any) => {
-        console.error(error);
-      }
-    });
+  sortAndSend(): void {
+    this.documents.sort((a, b) =>
+      a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+    );
+    this.documentListChangedEvent.next(this.documents.slice());
   }
 
-  storeDocuments(): void {
-    const documentsString = JSON.stringify(this.documents);
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    this.http.put(this.firebaseUrl, documentsString, { headers }).subscribe(
-      () => {
-        this.documentListChangedEvent.next(this.documents.slice());
-      }
-    );
+  getDocuments(): void {
+    this.http
+      .get<{ message: string; documents: Document[] }>(this.documentsUrl)
+      .subscribe({
+        next: (response) => {
+          this.documents = response.documents ? response.documents : [];
+          this.maxDocumentId = this.getMaxId();
+          this.sortAndSend();
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   getDocument(id: string): Document | null {
@@ -62,38 +58,86 @@ export class DocumentService {
     return null;
   }
 
-  addDocument(newDocument: Document): void {
-    if (!newDocument) {
+  addDocument(document: Document): void {
+    if (!document) {
       return;
     }
-    this.maxDocumentId++;
-    newDocument.id = String(this.maxDocumentId);
-    this.documents.push(newDocument);
-    this.storeDocuments();
+
+    document.id = '';
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http
+      .post<{ message: string; document: Document }>(
+        this.documentsUrl,
+        document,
+        { headers }
+      )
+      .subscribe({
+        next: (responseData) => {
+          this.documents.push(responseData.document);
+          this.sortAndSend();
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   updateDocument(originalDocument: Document, newDocument: Document): void {
     if (!originalDocument || !newDocument) {
       return;
     }
-    const pos = this.documents.indexOf(originalDocument);
+
+    const pos = this.documents.findIndex((d) => d.id === originalDocument.id);
+
     if (pos < 0) {
       return;
     }
+
     newDocument.id = originalDocument.id;
-    this.documents[pos] = newDocument;
-    this.storeDocuments();
+    (newDocument as Document & { _id?: string })._id = (
+      originalDocument as Document & { _id?: string }
+    )._id;
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http
+      .put(
+        this.documentsUrl + '/' + originalDocument.id,
+        newDocument,
+        { headers }
+      )
+      .subscribe({
+        next: () => {
+          this.documents[pos] = newDocument;
+          this.sortAndSend();
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   deleteDocument(document: Document): void {
     if (!document) {
       return;
     }
-    const pos = this.documents.indexOf(document);
+
+    const pos = this.documents.findIndex((d) => d.id === document.id);
+
     if (pos < 0) {
       return;
     }
-    this.documents.splice(pos, 1);
-    this.storeDocuments();
+
+    this.http.delete(this.documentsUrl + '/' + document.id).subscribe({
+      next: () => {
+        this.documents.splice(pos, 1);
+        this.sortAndSend();
+      },
+      error: (error: unknown) => {
+        console.error(error);
+      }
+    });
   }
 }

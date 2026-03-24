@@ -12,7 +12,7 @@ export class ContactService {
 
   contactListChangedEvent = new Subject<Contact[]>();
 
-  private firebaseUrl = 'https://wdd430cms-6cb35-default-rtdb.firebaseio.com/contacts.json';
+  private contactsUrl = 'http://localhost:3000/contacts';
 
   constructor(private http: HttpClient) {}
 
@@ -27,30 +27,26 @@ export class ContactService {
     return maxId;
   }
 
-  getContacts(): void {
-    this.http.get<Contact[]>(this.firebaseUrl).subscribe(
-      (contacts: Contact[]) => {
-        this.contacts = contacts ? contacts : [];
-        this.maxContactId = this.getMaxId();
-        this.contacts.sort((a, b) =>
-          a.name < b.name ? -1 : a.name > b.name ? 1 : 0
-        );
-        this.contactListChangedEvent.next(this.contacts.slice());
-      },
-      (error: any) => {
-        console.error(error);
-      }
+  sortAndSend(): void {
+    this.contacts.sort((a, b) =>
+      a.name < b.name ? -1 : a.name > b.name ? 1 : 0
     );
+    this.contactListChangedEvent.next(this.contacts.slice());
   }
 
-  storeContacts(): void {
-    const contactsString = JSON.stringify(this.contacts);
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    this.http.put(this.firebaseUrl, contactsString, { headers }).subscribe(
-      () => {
-        this.contactListChangedEvent.next(this.contacts.slice());
-      }
-    );
+  getContacts(): void {
+    this.http
+      .get<{ message: string; contacts: Contact[] }>(this.contactsUrl)
+      .subscribe({
+        next: (response) => {
+          this.contacts = response.contacts ? response.contacts : [];
+          this.maxContactId = this.getMaxId();
+          this.sortAndSend();
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   getContact(id: string): Contact | null {
@@ -62,38 +58,98 @@ export class ContactService {
     return null;
   }
 
-  addContact(newContact: Contact): void {
-    if (!newContact) {
+  addContact(contact: Contact): void {
+    if (!contact) {
       return;
     }
-    this.maxContactId++;
-    newContact.id = String(this.maxContactId);
-    this.contacts.push(newContact);
-    this.storeContacts();
+
+    contact.id = '';
+
+    const payload = {
+      ...contact,
+      group: contact.group
+        ? contact.group.map((c) => (c as Contact & { _id?: string })._id ?? c.id)
+        : []
+    };
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http
+      .post<{ message: string; contact: Contact }>(this.contactsUrl, payload, {
+        headers
+      })
+      .subscribe({
+        next: (responseData) => {
+          this.contacts.push(responseData.contact);
+          this.sortAndSend();
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   updateContact(originalContact: Contact, newContact: Contact): void {
     if (!originalContact || !newContact) {
       return;
     }
-    const pos = this.contacts.indexOf(originalContact);
+
+    const pos = this.contacts.findIndex((c) => c.id === originalContact.id);
+
     if (pos < 0) {
       return;
     }
+
     newContact.id = originalContact.id;
-    this.contacts[pos] = newContact;
-    this.storeContacts();
+    (newContact as Contact & { _id?: string })._id = (
+      originalContact as Contact & { _id?: string }
+    )._id;
+
+    const payload = {
+      ...newContact,
+      group: newContact.group
+        ? newContact.group.map(
+            (c) => (c as Contact & { _id?: string })._id ?? c.id
+          )
+        : []
+    };
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http
+      .put(this.contactsUrl + '/' + originalContact.id, payload, {
+        headers
+      })
+      .subscribe({
+        next: () => {
+          this.contacts[pos] = newContact;
+          this.sortAndSend();
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   deleteContact(contact: Contact): void {
     if (!contact) {
       return;
     }
-    const pos = this.contacts.indexOf(contact);
+
+    const pos = this.contacts.findIndex((c) => c.id === contact.id);
+
     if (pos < 0) {
       return;
     }
-    this.contacts.splice(pos, 1);
-    this.storeContacts();
+
+    this.http.delete(this.contactsUrl + '/' + contact.id).subscribe({
+      next: () => {
+        this.contacts.splice(pos, 1);
+        this.sortAndSend();
+      },
+      error: (error: unknown) => {
+        console.error(error);
+      }
+    });
   }
 }

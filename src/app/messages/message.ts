@@ -12,7 +12,7 @@ export class MessageService {
 
   messageChangedEvent = new Subject<Message[]>();
 
-  private firebaseUrl = 'https://wdd430cms-6cb35-default-rtdb.firebaseio.com/messages.json';
+  private messagesUrl = 'http://localhost:3000/messages';
 
   constructor(private http: HttpClient) {}
 
@@ -28,26 +28,18 @@ export class MessageService {
   }
 
   getMessages(): void {
-    this.http.get<Message[]>(this.firebaseUrl).subscribe(
-      (messages: Message[]) => {
-        this.messages = messages ? messages : [];
-        this.maxMessageId = this.getMaxId();
-        this.messageChangedEvent.next(this.messages.slice());
-      },
-      (error: any) => {
-        console.error(error);
-      }
-    );
-  }
-
-  storeMessages(): void {
-    const messagesString = JSON.stringify(this.messages);
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    this.http.put(this.firebaseUrl, messagesString, { headers }).subscribe(
-      () => {
-        this.messageChangedEvent.next(this.messages.slice());
-      }
-    );
+    this.http
+      .get<{ message: string; messages: Message[] }>(this.messagesUrl)
+      .subscribe({
+        next: (response) => {
+          this.messages = response.messages ? response.messages : [];
+          this.maxMessageId = this.getMaxId();
+          this.messageChangedEvent.next(this.messages.slice());
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 
   getMessage(id: string): Message | null {
@@ -63,9 +55,23 @@ export class MessageService {
     if (!message) {
       return;
     }
-    this.maxMessageId++;
-    message.id = String(this.maxMessageId);
-    this.messages.push(message);
-    this.storeMessages();
+
+    message.id = '';
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http
+      .post<{ message: string; msg: Message }>(this.messagesUrl, message, {
+        headers
+      })
+      .subscribe({
+        next: (responseData) => {
+          this.messages.push(responseData.msg);
+          this.messageChangedEvent.next(this.messages.slice());
+        },
+        error: (error: unknown) => {
+          console.error(error);
+        }
+      });
   }
 }

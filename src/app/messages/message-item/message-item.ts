@@ -24,10 +24,12 @@ export class MessageItem implements OnInit {
   ngOnInit(): void {
     if (!this.message) return;
 
-    const contact: Contact | null = this.contactService.getContact(this.message.sender);
-
-    if (contact) {
-      this.messageSender = contact.name;
+    const sender = this.message.sender as unknown;
+    if (typeof sender === 'object' && sender !== null && 'name' in sender) {
+      this.messageSender = (sender as { name: string }).name;
+    } else if (typeof sender === 'string') {
+      const contact: Contact | null = this.contactService.getContact(sender);
+      this.messageSender = contact ? contact.name : 'Unknown Sender';
     } else {
       this.messageSender = 'Unknown Sender';
     }

@@ -1,10 +1,11 @@
 <div class="panel panel-default">
-  <div class="panel-heading clearfix">
-    <h3 class="panel-title pull-left">Documents</h3>
-
-    <a class="btn btn-success pull-right" [routerLink]="['new']">
-      Add Document
-    </a>
+  <div class="panel-heading">
+    <div class="row">
+      <span class="title pad-left-right">Documents</span>
+    </div>
+    <div class="pull-right pad-left-right">
+      <a class="btn btn-success" [routerLink]="['new']">New Document</a>
+    </div>
   </div>
 
   <div class="panel-body">
